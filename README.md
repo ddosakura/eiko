@@ -6,4 +6,5 @@
 
 + framework: hot reload
 + framework: cors
++ framework: cron
 + service: user&db
