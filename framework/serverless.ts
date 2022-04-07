@@ -81,6 +81,8 @@ export class Services {
 
 // === utils ===
 
+export * from "./middlewares.ts";
+
 export const safeHandler = <Path extends string>(
   handler: (ctx: oak.RouterContext<Path>) => Promise<OakResponseBody>,
 ): oak.RouterMiddleware<Path> =>

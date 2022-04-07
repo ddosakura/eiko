@@ -3,7 +3,7 @@ import { newApiGateway } from "./api_gateway.ts";
 import { newFileServer } from "./file_server.ts";
 import { logger, timing } from "./logger.ts";
 
-export const serve = async (port: number) => {
+export const serve = async (port: number, path: string) => {
   const app = new oak.Application();
   app.addEventListener("listen", ({ hostname, port, secure }) => {
     console.log(
@@ -28,6 +28,6 @@ export const serve = async (port: number) => {
   });
   app.use(logger, timing);
   app.use(newApiGateway().routes());
-  app.use(newFileServer());
+  app.use(newFileServer(path.startsWith('/') ? path : `${Deno.cwd()}/${path}`));
   await app.listen({ port });
 };
