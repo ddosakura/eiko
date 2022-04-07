@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "serverless": "./framework/serverless.ts",
+    "deps": "./deps.ts"
+  }
+}
