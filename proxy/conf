@@ -1,0 +1,10 @@
+server {
+    listen       80;
+    server_name  localhost;
+    location / {
+        proxy_pass   http://eiko:8080;
+    }
+    location /mongo {
+        proxy_pass   http://mongo-express:8081;
+    }
+}

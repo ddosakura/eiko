@@ -1,0 +1,56 @@
+# https://docs.docker.com/desktop/dev-environments/
+# https://github.com/dockersamples/compose-dev-env
+version: "3.7"
+services:
+  eiko:
+    image: ddosakura/eiko:0.0.0
+    secrets:
+      - mongo-user
+      - mongo-pass
+    volumes:
+      - /mnt/d/devenv/koumei:/com.docker.devenvironments.code/static
+      - /mnt/d/devenv/eiko:/storage
+    depends_on:
+      - mongo
+  # https://hub.docker.com/_/mongo
+  mongo:
+    image: mongo:5.0.6
+    restart: always
+    secrets:
+      - mongo-user
+      - mongo-pass
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: /run/secrets/mongo-user
+      MONGO_INITDB_ROOT_PASSWORD: /run/secrets/mongo-pass
+    volumes:
+      - mongo-data:/com.docker.devenvironments.code/static
+    expose:
+      - 27017
+  # https://hub.docker.com/_/mongo-express
+  mongo-express:
+    image: mongo-express:1.0.0-alpha.4
+    restart: always
+    environment:
+      ME_CONFIG_SITE_BASEURL: /mongo
+      ME_CONFIG_OPTIONS_EDITORTHEME: ambiance
+      ME_CONFIG_MONGODB_ADMINUSERNAME: /run/secrets/mongo-user
+      ME_CONFIG_MONGODB_ADMINPASSWORD: /run/secrets/mongo-pass
+      # ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
+    depends_on:
+      - mongo
+    expose:
+      - 8081
+  proxy:
+    build: proxy
+    ports:
+      - 8088:80
+    depends_on:
+      - eiko
+      - mongo-express
+volumes:
+  mongo-data:
+secrets:
+  mongo-user:
+    file: secrets/mongo-user
+  mongo-pass:
+    file: secrets/mongo-pass
