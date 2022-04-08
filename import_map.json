@@ -1,5 +1,7 @@
 {
   "imports": {
+    "https://esm.sh/comlink@4.3.1/dist/esm/protocol": "https://esm.sh/comlink@4.3.1/dist/esm/protocol.d.ts",
+
     "serverless": "./framework/serverless.ts",
     "@eiko/": "./packages/",
     "deps": "./deps.ts"

@@ -1,6 +1,7 @@
 # [Koumei Project](https://github.com/ddosakura/koumei) Eiko Services
 
-基于 deno 的 serverless 框架及 [Koumei Project](https://github.com/ddosakura/koumei) 所需的服务
+基于 deno 的 serverless 框架及 [Koumei Project](https://github.com/ddosakura/koumei)
+所需的服务
 
 ## QuickStart
 
@@ -37,17 +38,21 @@ deno run ./main.ts
 
 ## Framework Feature
 
-+ Registering Routes Dynamically
-+ File Server
-+ middlewares
-  + cors
+- Registering Routes Dynamically
+- File Server
+- middlewares
+  - cors
 
 ## TODO List
 
-+ framework: hot reload (worker?)
-+ framework: cron trigger
-+ framework: logger to db
-+ service: user&db
+- framework: hot reload (worker + bundle + nocheck)
+- framework: acl
+- framework: cron trigger
+- framework: logger to db
+- service: user&db
+- service: aria2
+- service: coss(cloud object storage service)
+- service: cas(cloud archive service)
 
 ## mongo-express
 
