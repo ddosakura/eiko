@@ -12,6 +12,8 @@ services:
       - eiko-storage:/storage
     depends_on:
       - mongo
+    # stdin_open: true # -i interactive
+    tty: true # -t tty
     entrypoint: ["bash"]
   # https://hub.docker.com/_/mongo
   mongo:
