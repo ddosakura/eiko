@@ -44,7 +44,7 @@ deno run ./main.ts
 
 ## TODO List
 
-+ framework: hot reload
++ framework: hot reload (worker?)
 + framework: cron trigger
 + framework: logger to db
 + service: user&db
