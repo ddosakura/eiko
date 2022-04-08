@@ -8,8 +8,8 @@ services:
       - mongo-user
       - mongo-pass
     volumes:
-      - D:\devenv\koumei:/web
-      - D:\devenv\eiko:/storage
+      - koumei-web:/web
+      - eiko-storage:/storage
     depends_on:
       - mongo
   # https://hub.docker.com/_/mongo
@@ -23,7 +23,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: /run/secrets/mongo-user
       MONGO_INITDB_ROOT_PASSWORD: /run/secrets/mongo-pass
     volumes:
-      - mongo-data:/data/db
+      - eiko-mongo:/data/db
     expose:
       - 27017
   # https://hub.docker.com/_/mongo-express
@@ -48,7 +48,12 @@ services:
       - eiko
       - mongo-express
 volumes:
-  mongo-data:
+  koumei-web:
+    external: true
+  eiko-storage:
+    external: true
+  eiko-mongo:
+    # external: true
 secrets:
   mongo-user:
     file: secrets/mongo-user
