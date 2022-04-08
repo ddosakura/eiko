@@ -1,6 +1,7 @@
 {
   "imports": {
     "serverless": "./framework/serverless.ts",
+    "@eiko/": "./packages/",
     "deps": "./deps.ts"
   }
 }
