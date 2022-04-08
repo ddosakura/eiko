@@ -27,8 +27,10 @@ services:
       - mongo-user
       - mongo-pass
     environment:
-      MONGO_INITDB_ROOT_USERNAME: /run/secrets/mongo-user
-      MONGO_INITDB_ROOT_PASSWORD: /run/secrets/mongo-pass
+      # MONGO_INITDB_ROOT_USERNAME: xxx
+      # MONGO_INITDB_ROOT_PASSWORD: xxx
+      MONGO_INITDB_ROOT_USERNAME_FILE: /run/secrets/mongo-user
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo-pass
     volumes:
       - eiko-mongo:/data/db
     expose:
