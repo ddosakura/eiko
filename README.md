@@ -27,22 +27,23 @@ docker run -it --init \
 + framework: logger to db
 + service: user&db
 
-## docker compose debug
+## mongo-express
 
 ```bash
+# 有问题
 docker run -it --rm \
-    --network eiko-angry_gauss_default \
+    --network eiko-romantic_chatelet_default \
     --name mongo-express \
     -p 8081:8081 \
     -e ME_CONFIG_SITE_BASEURL="/mongo" \
     -e ME_CONFIG_OPTIONS_EDITORTHEME="ambiance" \
-    -e ME_CONFIG_MONGODB_SERVER="mongo" \
-    -e ME_CONFIG_BASICAUTH_USERNAME="root" \
-    -e ME_CONFIG_BASICAUTH_PASSWORD="123456" \
+    -e ME_CONFIG_MONGODB_ADMINUSERNAME="root" \
+    -e ME_CONFIG_MONGODB_ADMINPASSWORD="123456" \
     mongo-express:1.0.0-alpha.4
 
+# 可行
 docker run -it --rm \
-    --network eiko-angry_gauss_default \
+    --network eiko-romantic_chatelet_default \
     --name mongo-express \
     -p 8081:8081 \
     -e ME_CONFIG_MONGODB_URL=mongodb://root:123456@mongo:27017 \
@@ -50,7 +51,16 @@ docker run -it --rm \
     -e ME_CONFIG_BASICAUTH_PASSWORD="123456" \
     mongo-express:1.0.0-alpha.4
 
-docker run -it --rm --network eiko-angry_gauss_default mongo:5.0.6 \
+# example
+docker run -it --rm \
+    --network eiko-romantic_chatelet_default \
+    --name mongo-express \
+    -p 8081:8081 \
+    -e ME_CONFIG_MONGODB_URL=mongodb://root:123456@mongo:27017 \
+    mongo-express:1.0.0-alpha.4
+
+# CLI
+docker run -it --rm --network eiko-romantic_chatelet_default mongo:5.0.6 \
     mongo --host mongo \
     -u root \
     -p 123456 \

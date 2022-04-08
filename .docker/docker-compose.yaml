@@ -36,26 +36,26 @@ services:
     expose:
       - 27017
   # https://hub.docker.com/_/mongo-express
-  mongo-express:
-    image: mongo-express:1.0.0-alpha.4
-    restart: always
-    environment:
-      ME_CONFIG_SITE_BASEURL: /mongo
-      ME_CONFIG_OPTIONS_EDITORTHEME: ambiance
-      ME_CONFIG_MONGODB_ADMINUSERNAME: /run/secrets/mongo-user
-      ME_CONFIG_MONGODB_ADMINPASSWORD: /run/secrets/mongo-pass
-      # ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
-    depends_on:
-      - mongo
-    expose:
-      - 8081
+  # mongo-express:
+  #   image: mongo-express:1.0.0-alpha.4
+  #   restart: always
+  #   environment:
+  #     ME_CONFIG_SITE_BASEURL: /mongo
+  #     ME_CONFIG_OPTIONS_EDITORTHEME: ambiance
+  #     ME_CONFIG_MONGODB_ADMINUSERNAME: /run/secrets/mongo-user
+  #     ME_CONFIG_MONGODB_ADMINPASSWORD: /run/secrets/mongo-pass
+  #     # ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
+  #   depends_on:
+  #     - mongo
+  #   expose:
+  #     - 8081
   proxy:
     build: proxy
     ports:
       - 8088:80
     depends_on:
       - eiko
-      - mongo-express
+      # - mongo-express
 volumes:
   # koumei-web:
   #   external: true

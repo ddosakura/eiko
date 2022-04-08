@@ -4,7 +4,7 @@ server {
     location / {
         proxy_pass   http://eiko:8080;
     }
-    location /mongo {
-        proxy_pass   http://mongo-express:8081;
-    }
+    # location /mongo {
+    #     proxy_pass   http://mongo-express:8081;
+    # }
 }
