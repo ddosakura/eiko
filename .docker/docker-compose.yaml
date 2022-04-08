@@ -8,8 +8,12 @@ services:
       - mongo-user
       - mongo-pass
     volumes:
-      - koumei-web:/web
-      - eiko-storage:/storage
+      - type: bind
+        source: d:/devenv/koumei
+        target: /web
+      - type: bind
+        source: d:/devenv/eiko
+        target: /storage
     depends_on:
       - mongo
     # stdin_open: true # -i interactive
@@ -51,10 +55,10 @@ services:
       - eiko
       - mongo-express
 volumes:
-  koumei-web:
-    external: true
-  eiko-storage:
-    external: true
+  # koumei-web:
+  #   external: true
+  # eiko-storage:
+  #   external: true
   eiko-mongo:
     # external: true
 secrets:
