@@ -13,10 +13,23 @@ export interface DenoWorkerOptions {
   permissions?: PermissionOptions;
 }
 
+export const run = async <T = unknown>(
+  specifier: string | URL,
+  options?: DenoWorkerOptions,
+) => {
+  try {
+    const mod = await Deno.stat(specifier);
+    if (!mod.isFile) return;
+    return runSync<T>(specifier, options);
+  } catch {
+    return;
+  }
+};
+
 // For workers using local modules; --allow-read permission is required.
 // For workers using remote modules; --allow-net permission is required.
 // specifier: e.g. new URL("./worker.js", import.meta.url).href
-export const run = <T = unknown>(
+export const runSync = <T = unknown>(
   specifier: string | URL,
   options?: DenoWorkerOptions,
 ) => {

@@ -4,7 +4,7 @@ export interface Context {
   deadline(): Date | undefined;
   done(): Promise<void>; // AbortSignal;
   err(): Error | undefined;
-  value(key: any): any;
+  value<V = any>(key: any): V | undefined;
 }
 
 export const ERR_CANCELED = new Error("context canceled");

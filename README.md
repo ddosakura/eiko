@@ -45,7 +45,7 @@ deno run ./main.ts
 
 ## TODO List
 
-- framework: hot reload (worker + bundle + nocheck + weakmap context)
+- framework: hot reload (worker + bundle + nocheck)
 - framework: acl
 - framework: cron trigger
 - framework: logger to db
