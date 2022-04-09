@@ -29,7 +29,7 @@ export const serve = async (port: number, path?: string) => {
   app.use(logger, timing);
   app.use(newApiGateway().routes());
   if (path) {
-    const root = path.startsWith('/') ? path : `${Deno.cwd()}/${path}`
+    const root = path.startsWith("/") ? path : `${Deno.cwd()}/${path}`;
     app.use(newFileServer(root));
   }
   await app.listen({ port });
