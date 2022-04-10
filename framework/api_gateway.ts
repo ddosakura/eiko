@@ -9,6 +9,34 @@ import {
 import { run } from "@eiko/worker/mod.ts";
 import { select, sleep } from "@eiko/shared/mod.ts";
 
+const buildServiceOptions = (svrName: string) => ({
+  // TODO: hot reload
+  load: async () => {
+    console.log("加载 serverless", svrName);
+    const url = new URL(
+      `../lambda/${svrName}/mod.ts`,
+      import.meta.url,
+    );
+    const svr = await run<RawServerless>(
+      url,
+      {
+        namespace: true,
+        permissions: "inherit",
+      },
+    );
+    if (!svr) return;
+    const { remote, terminate } = svr;
+    console.log("加载 serverless", svrName, "完成");
+    return {
+      handler: remote.handler,
+      onUnload: async () => {
+        await remote.onUnload();
+        terminate();
+      },
+    };
+  },
+});
+
 export const newApiGateway = (prefix = "/api") => {
   const services = new Services();
   services.register("manager", {
@@ -21,6 +49,11 @@ export const newApiGateway = (prefix = "/api") => {
         .get("/timeout", async (ctx) => {
           await sleep(10 * 1000);
           ctx.response.body = "timeout";
+        })
+        .get("/reload/:svr", async (ctx) => {
+          const svr = ctx.params.svr;
+          const isSucc = await services.register(svr, buildServiceOptions(svr));
+          ctx.response.body = `reload ${svr} ${isSucc ? "success" : "fail"}`;
         })
         .all("(.*)?", (ctx) => {
           ctx.response.body = ctx.request.url;
@@ -51,32 +84,7 @@ export const newApiGateway = (prefix = "/api") => {
             url: url.toString(),
             method: ctx.request.method,
             headers: Object.fromEntries(ctx.request.headers.entries()),
-          }, {
-            load: async () => {
-              console.log("加载 serverless", svrName);
-              const url = new URL(
-                `../lambda/${svrName}/mod.ts`,
-                import.meta.url,
-              );
-              const worker = await run<RawServerless>(
-                url,
-                {
-                  namespace: true,
-                  permissions: "inherit",
-                },
-              );
-              if (!worker) return;
-              const { remote, terminate } = worker;
-              // console.log("加载 serverless", svrName, "完成");
-              return {
-                handler: remote.handler,
-                onUnload: async () => {
-                  await remote.onUnload();
-                  terminate();
-                },
-              };
-            },
-          });
+          }, buildServiceOptions(svrName));
         })(),
         (resp: RawResponse) => {
           console.log("请求 serverless", svrName, "完成");

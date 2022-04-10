@@ -122,5 +122,6 @@ export class Services {
     this.unregister(svr);
     const serverless = await options.load();
     serverless && this.services.set(svr, serverless);
+    return !!serverless;
   }
 }

@@ -2,7 +2,7 @@ import { oak } from "deps";
 import { expose } from "@eiko/serverless/mod.ts";
 
 const router = new oak.Router()
-  .get("/", (ctx) => ctx.response.body = { code: 0, msg: "foo" })
+  .get("/", (ctx) => ctx.response.body = { code: 0, msg: "foo2" })
   .get("/bar", (ctx) => ctx.response.body = { code: 0, msg: "fooBar" });
 
 const app = new oak.Application();
