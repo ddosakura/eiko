@@ -5,6 +5,7 @@ import {
   RawResponse,
   RawServerless,
   Services,
+  toRawRequest,
 } from "@eiko/serverless/mod.ts";
 import { run } from "@eiko/worker/mod.ts";
 import { select, sleep } from "@eiko/shared/mod.ts";
@@ -38,7 +39,7 @@ const buildServiceOptions = (svrName: string) => ({
 });
 
 export const newApiGateway = (prefix = "/api") => {
-  const services = new Services();
+  const services = new Services(buildServiceOptions);
   services.register("manager", {
     load: () => {
       const router = new oak.Router()
@@ -80,11 +81,17 @@ export const newApiGateway = (prefix = "/api") => {
           const url = new URL(ctx.request.url.toString());
           url.pathname = url.pathname.replace(`${prefix}/${svrName}`, "");
           console.log("请求 serverless", svrName);
-          return await services.handle(svrName, {
-            url: url.toString(),
-            method: ctx.request.method,
-            headers: Object.fromEntries(ctx.request.headers.entries()),
-          }, buildServiceOptions(svrName));
+          return await services.handle(
+            svrName,
+            await toRawRequest(
+              url.toString(),
+              {
+                method: ctx.request.method,
+                headers: ctx.request.headers,
+                body: await ctx.request.body({ type: "bytes" }).value,
+              },
+            ),
+          );
         })(),
         (resp: RawResponse) => {
           console.log("请求 serverless", svrName, "完成");

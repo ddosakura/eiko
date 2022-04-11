@@ -9,3 +9,13 @@ export const select = async (...cases: SelectCase[]) => {
   );
   return cases[index][1](data);
 };
+
+const singletonCache = new WeakMap();
+// deno-lint-ignore ban-types no-explicit-any
+export const singleton = <K extends object = object, V = any>(
+  k: K,
+  builder: (k: K) => V,
+): V => {
+  if (!singletonCache.has(k)) singletonCache.set(k, builder(k));
+  return singletonCache.get(k);
+};

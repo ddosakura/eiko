@@ -15,7 +15,7 @@ const router = new oak.Router()
           // const resp = await fetch("https://does.not.exist/");
           // const resp = await fetch("https://acg.rip/.xml?term=Koumei");
           const url = ctx.request.url.searchParams.get("url");
-          console.log("debug3", "url", url);
+          // console.log("debug3", "url", url);
           if (!url) return { url };
           const now = +new Date();
           const resp = await fetch(url);
@@ -46,6 +46,7 @@ export default expose(async (_ctx, req) => {
     new Response(null, { status: oak.Status.ServiceUnavailable });
 });
 
+export type Example = typeof example;
 const example = {
   "url": "https://acg.rip/.xml?term=Koumei",
   "rss": {

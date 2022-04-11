@@ -1,25 +1,29 @@
 import { oak } from "deps";
-import { expose as e, transfer } from "@eiko/worker/mod.ts";
+import { expose as e, proxy } from "@eiko/worker/mod.ts";
 
-export type Context = Record<string, string>;
-export type RawRequest = {
-  url: string;
-  method: string;
-  headers: Record<string, string>;
-};
-export type RawResponse = {
-  status: oak.Status;
-  headers?: Record<string, string>;
-  body?: Uint8Array;
-};
+export * from "./utils.ts";
+import {
+  RawRequest,
+  RawResponse,
+  toRawRequest,
+  toRawResponse,
+  toResponse,
+} from "./utils.ts";
+
+// deno-lint-ignore no-explicit-any
+export type Context = Record<string, any>;
 
 export type Handler = (
   context: Context,
   request: Request,
+  lambda: (
+    svr: string,
+  ) => (input: RequestInfo, init?: RequestInit) => Promise<Response>,
 ) => Promise<Response | string>;
 export type RawHandler = (
   context: Context,
   request: RawRequest,
+  lambda: (svr: string, req: RawRequest) => Promise<RawResponse>,
 ) => Promise<RawResponse>;
 
 // === define ===
@@ -41,16 +45,21 @@ export const define = (handler: HandlerOrServerless): RawServerless => {
     : handler;
   return {
     ...serverless,
-    handler: async (ctx, { url, ...opts }) => {
+    handler: async (ctx, { url, ...opts }, lambda) => {
       try {
-        const body = await serverless.handler(ctx, new Request(url, opts));
-        const resp = typeof body === "string" ? new Response(body) : body;
-        const data = new Uint8Array(await resp.arrayBuffer()); // (await resp.body?.getReader().read())?.value;
-        return {
-          status: resp.status,
-          headers: Object.fromEntries(resp.headers.entries()),
-          body: data ? transfer(data, [data.buffer]) : undefined,
-        };
+        const body = await serverless.handler(
+          ctx,
+          new Request(url, opts),
+          (svr: string) =>
+            async (input: RequestInfo, init?: RequestInit) => {
+              const resp = await lambda(
+                svr,
+                await toRawRequest(new Request(input, init)),
+              );
+              return toResponse(resp);
+            },
+        );
+        return toRawResponse(body);
       } catch {
         return {
           status: oak.Status.InternalServerError,
@@ -77,7 +86,10 @@ export interface ServiceOptions {
 
 export class Services {
   private services = new Map<string, RawServerless>();
-  constructor() {}
+  private getOptions: (svr: string) => ServiceOptions;
+  constructor(getOptions: (svr: string) => ServiceOptions) {
+    this.getOptions = getOptions;
+  }
 
   list() {
     return Array.from(this.services.entries())
@@ -87,8 +99,9 @@ export class Services {
   async handle(
     svr: string,
     request: RawRequest,
-    options: ServiceOptions,
+    rawOptions?: ServiceOptions,
   ): Promise<RawResponse> {
+    const options = rawOptions ?? this.getOptions(svr);
     try {
       if (!this.services.has(svr)) {
         const serverless = await options.load();
@@ -102,7 +115,13 @@ export class Services {
       }
       const s = this.services.get(svr)!;
       const context = {};
-      return await s.handler(context, request);
+      return await s.handler(
+        context,
+        request,
+        proxy(async (svr: string, req: RawRequest) =>
+          await this.handle(svr, req)
+        ),
+      );
     } catch {
       // console.error("catch", e);
       return {
@@ -118,7 +137,8 @@ export class Services {
     this.services.delete(svr);
   }
 
-  async register(svr: string, options: ServiceOptions) {
+  async register(svr: string, rawOptions?: ServiceOptions) {
+    const options = rawOptions ?? this.getOptions(svr);
     this.unregister(svr);
     const serverless = await options.load();
     serverless && this.services.set(svr, serverless);
