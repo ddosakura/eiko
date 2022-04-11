@@ -13,12 +13,14 @@ import {
 // deno-lint-ignore no-explicit-any
 export type Context = Record<string, any>;
 
+export type Lambda = (
+  svr: string,
+) => (input: RequestInfo, init?: RequestInit) => Promise<Response>;
+
 export type Handler = (
   context: Context,
   request: Request,
-  lambda: (
-    svr: string,
-  ) => (input: RequestInfo, init?: RequestInit) => Promise<Response>,
+  lambda: Lambda,
 ) => Promise<Response | string>;
 export type RawHandler = (
   context: Context,

@@ -1,4 +1,4 @@
-import { oak } from "deps";
+import { basicAuth, oak } from "deps";
 import { newApiGateway } from "./api_gateway.ts";
 import { newFileServer } from "./file_server.ts";
 import { logger, timing } from "./logger.ts";
@@ -12,6 +12,25 @@ export const serve = async (port: number, path?: string) => {
           "localhost"
       }:${port}`,
     );
+  });
+  app.use(async (ctx, next) => {
+    const unauthorized = basicAuth(
+      new Request("http://auth", { headers: ctx.request.headers }),
+      "Access to my site",
+      {
+        "test2": "123456",
+      },
+    );
+    if (unauthorized) {
+      ctx.response.status = unauthorized.status;
+      ctx.response.headers.set(
+        "www-authenticate",
+        unauthorized.headers.get("www-authenticate")!,
+      );
+      return;
+    }
+    // 此处不 await 会导致 `app Error: The response is not writable.`
+    await next();
   });
   app.use(async (ctx, next) => {
     try {
