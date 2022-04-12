@@ -2,6 +2,13 @@ import { Resource, ResourceManager } from "./resource.ts";
 
 export class AcgRipRM extends ResourceManager {
   async search(): Promise<Resource[]> {
+    if (this.name === "test") {
+      return [{
+        title: "test",
+        pubDate: +new Date(),
+        url: "http://172.23.8.160:8383/eiko/coss/default/a%20b.txt",
+      }];
+    }
     const url = new URL("http://lambda/2json");
     url.searchParams.set("url", `https://acg.rip/.xml?term=${this.name}`);
     const resp = await this.lambda("rss")(url.toString());

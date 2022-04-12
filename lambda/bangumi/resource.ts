@@ -15,8 +15,12 @@ export interface Resource {
 export interface ResourceSchema extends Resource {
   _id: ObjectId;
   cid: ObjectId;
-  // 同步完成
-  sync: boolean;
+  // aria2
+  aria2Id: string;
+  // 同步的 coss_id -> 文件原名
+  files?: Record<string, string>;
+  // 文件切片
+  hls?: Record<string, boolean>;
 }
 // 合集
 export interface CollectionSchema {

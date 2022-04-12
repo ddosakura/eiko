@@ -40,6 +40,21 @@ export default expose(async (_ctx, req, lambda) => {
         const list = await cursor.toArray();
         ctx.response.body = { total, list };
       })
+      .get("/resources", async (ctx) => {
+        const page = parseInt(
+          ctx.request.url.searchParams.get("page") ?? "1",
+          10,
+        );
+        const size = parseInt(
+          ctx.request.url.searchParams.get("size") ?? "10",
+          10,
+        );
+        const total = await resources.countDocuments();
+        const cursor = resources.find();
+        cursor.skip((page - 1) * size).limit(size);
+        const list = await cursor.toArray();
+        ctx.response.body = { total, list };
+      })
       // TODO: post & impl
       // .get("/collection", async (ctx) => {
       //   const collection: Partial<CollectionSchema> = {
@@ -54,8 +69,22 @@ export default expose(async (_ctx, req, lambda) => {
       //       { upsert: true },
       //     );
       // })
+      .get("/test", async (ctx) => {
+        const collection: Partial<CollectionSchema> = {
+          name: "test",
+          searchKey: "test",
+          reFilter: "test",
+        };
+        ctx.response.body = await collections
+          .updateOne(
+            { name: collection.name },
+            { $set: collection },
+            { upsert: true },
+          );
+      })
       .get("/sync", async (ctx) => {
         const name = ctx.request.url.searchParams.get("name");
+        const latest = !!ctx.request.url.searchParams.get("latest");
         if (!name) return ctx.response.body = { name };
         const collection = await collections.findOne({ name });
         if (!collection) return ctx.response.body = { name };
@@ -63,22 +92,61 @@ export default expose(async (_ctx, req, lambda) => {
         const list = (await search(
           collection.searchKey,
           new RegExp(collection.reFilter),
-        )).map((item) => ({ ...item, cid: collection._id, sync: false }));
+        )).map((item) => ({ ...item, cid: collection._id }));
 
         const syncList = await (async () => {
-          const latest = await resources.findOne({ cid: collection._id }, {
-            sort: { pubDate: 1 },
+          const oldLatest = await resources.findOne({ cid: collection._id }, {
+            sort: { pubDate: -1 },
           });
-          if (!latest) return list;
+          if (!oldLatest) return list;
           // 增量更新
-          return list.filter((item) => item.pubDate > latest.pubDate);
+          const newList = list.filter((item) =>
+            item.pubDate > oldLatest.pubDate
+          );
+          if (!latest) return newList;
+          // 只同步最新资源
+          return list.length > 1 ? [list[0]] : [];
         })();
+        if (syncList.length === 0) {
+          return ctx.response.body = { name, msg: "Not Need Sync" };
+        }
 
-        await resources.insertMany(syncList);
-        // TODO: call aria2c
-        // TODO: cb change sync from false to true
+        const url = new URL("http://lambda/aria2");
+        syncList.forEach((item) => url.searchParams.append("url", item.url));
+        url.searchParams.set("hls", "true");
+        url.searchParams.set("bucket", "bangumi");
+        url.searchParams.set("cb", `http://bangumi.lambda/sync/done`);
+        const resp = await lambda("coss")(url.toString());
+        const aria2Ids: Record<string, string> = await resp.json();
+        // const aria2Ids: Record<string, string> = {};
 
-        ctx.response.body = syncList;
+        const aria2List = syncList.map((item) => ({
+          ...item,
+          aria2Id: aria2Ids[item.url],
+        }));
+        await resources.insertMany(aria2List);
+        ctx.response.body = {
+          name,
+          list: aria2List,
+        };
+      })
+      .get("/sync/done", async (ctx) => {
+        const aria2Id = ctx.request.url.searchParams.get("id");
+        if (!aria2Id) return ctx.response.body = {};
+        const hls = !!ctx.request.url.searchParams.get("hls");
+        if (hls) {
+          // TODO: hls
+          return ctx.response.body = {};
+        }
+        const files: Record<string, string> = JSON.parse(
+          ctx.request.url.searchParams.get("files") ?? "{}",
+        );
+        // TODO: need mixin?
+        const result = await resources.updateOne(
+          { aria2Id },
+          { $set: { files } },
+        );
+        ctx.response.body = result;
       })
       .get(
         "/search",
