@@ -1,0 +1,103 @@
+# https://docs.docker.com/desktop/dev-environments/
+# https://github.com/dockersamples/compose-dev-env
+version: "3.7"
+services:
+  eiko:
+    image: ddosakura/eiko:0.1.1
+    secrets:
+      - mongo-user
+      - mongo-pass
+    volumes:
+      - type: bind
+        source: /koumeiproject/koumei
+        target: /web
+      - type: bind
+        source: /koumeiproject/eiko
+        target: /storage
+      - type: bind
+        source: ${PWD}
+        target: /eiko
+    depends_on:
+      - mongo
+    # stdin_open: true # -i interactive
+    tty: true # -t tty
+    entrypoint: ["bash"]
+  # https://hub.docker.com/r/p3terx/aria2-pro
+  # https://github.com/P3TERX/Aria2-Pro-Docker/blob/master/docker-compose.yml
+  aria2:
+    image: p3terx/aria2-pro:202108221156
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 1m
+    environment:
+      - PUID=${UID}
+      - PGID=${GID}
+      - UMASK_SET=022
+      - RPC_SECRET=123456
+      - RPC_PORT=6800
+      - LISTEN_PORT=6888
+      - DISK_CACHE=64M
+      - IPV6_MODE=false
+      - TZ=Asia/Shanghai
+    volumes:
+      - type: bind
+        source: /koumeiproject/aria2-config
+        target: /config
+      - type: bind
+        source: /koumeiproject/eiko/downloads
+        target: /downloads
+    # ports:
+    #   - 6800:6800
+    #   - 6888:6888
+    #   - 6888:6888/udp
+  # https://hub.docker.com/_/mongo
+  mongo:
+    image: mongo:5.0.6
+    restart: always
+    secrets:
+      - mongo-user
+      - mongo-pass
+    environment:
+      # MONGO_INITDB_ROOT_USERNAME: xxx
+      # MONGO_INITDB_ROOT_PASSWORD: xxx
+      MONGO_INITDB_ROOT_USERNAME_FILE: /run/secrets/mongo-user
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo-pass
+    volumes:
+      - eiko-mongo:/data/db
+    expose:
+      - 27017
+  # https://hub.docker.com/_/mongo-express
+  # mongo-express:
+  #   image: mongo-express:1.0.0-alpha.4
+  #   restart: always
+  #   environment:
+  #     ME_CONFIG_SITE_BASEURL: /mongo
+  #     ME_CONFIG_OPTIONS_EDITORTHEME: ambiance
+  #     ME_CONFIG_MONGODB_ADMINUSERNAME: /run/secrets/mongo-user
+  #     ME_CONFIG_MONGODB_ADMINPASSWORD: /run/secrets/mongo-pass
+  #     # ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
+  #   depends_on:
+  #     - mongo
+  #   expose:
+  #     - 8081
+  proxy:
+    build: proxy
+    ports:
+      - 8088:80
+    depends_on:
+      - eiko
+      # - mongo-express
+volumes:
+  # koumei-web:
+  #   external: true
+  # eiko-storage:
+  #   external: true
+  eiko-mongo:
+    # external: true
+secrets:
+  mongo-user:
+    file: secrets.prod/mongo-user
+  mongo-pass:
+    file: secrets.prod/mongo-pass
