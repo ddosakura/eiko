@@ -3,7 +3,7 @@
 version: "3.7"
 services:
   eiko:
-    image: ddosakura/eiko:0.1.0
+    image: ddosakura/eiko:0.1.1
     secrets:
       - mongo-user
       - mongo-pass

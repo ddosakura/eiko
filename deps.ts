@@ -1,4 +1,4 @@
-import * as io from "https://deno.land/std@0.133.0/io/mod.ts";
+import * as io from "https://deno.land/std@0.134.0/io/mod.ts";
 export { io };
 declare global {
   type Buffer = io.Buffer;

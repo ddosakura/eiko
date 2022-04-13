@@ -1,2 +1,3 @@
 main.js
-# TODO: secrets
+secrets.prod
+debug.log
