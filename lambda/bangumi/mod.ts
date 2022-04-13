@@ -1,4 +1,4 @@
-import { loadSecrets, MongoClient, oak } from "deps";
+import { loadSecrets, MongoClient, oak, ObjectId } from "deps";
 import { expose } from "@eiko/serverless/mod.ts";
 import { singleton } from "@eiko/shared/mod.ts";
 import { CollectionSchema, ResourceSchema } from "./resource.ts";
@@ -21,6 +21,29 @@ export default expose(async (_ctx, req, lambda) => {
   };
   const app = singleton(APP, () => {
     const router = new oak.Router()
+      .get("/collection", async (ctx) => {
+        const name = ctx.request.url.searchParams.get("name");
+        const searchKey = ctx.request.url.searchParams.get("key");
+        const reFilter = ctx.request.url.searchParams.get("filter");
+        if (!name || !searchKey || !reFilter) {
+          return ctx.response.body = {
+            name,
+            searchKey,
+            reFilter,
+          };
+        }
+        const collection: Partial<CollectionSchema> = {
+          name,
+          searchKey,
+          reFilter,
+        };
+        ctx.response.body = await collections
+          .updateOne(
+            { name: collection.name },
+            { $set: collection },
+            { upsert: true },
+          );
+      })
       .get("/collections", async (ctx) => {
         const page = parseInt(
           ctx.request.url.searchParams.get("page") ?? "1",
@@ -51,6 +74,24 @@ export default expose(async (_ctx, req, lambda) => {
         const list = await cursor.toArray();
         ctx.response.body = { total, list };
       })
+      .get("/resources/:cid", async (ctx) => {
+        const cid = ctx.params.cid;
+        const page = parseInt(
+          ctx.request.url.searchParams.get("page") ?? "1",
+          10,
+        );
+        const size = parseInt(
+          ctx.request.url.searchParams.get("size") ?? "10",
+          10,
+        );
+        const total = await resources.countDocuments({
+          cid: new ObjectId(cid),
+        });
+        const cursor = resources.find({ cid: new ObjectId(cid) });
+        cursor.skip((page - 1) * size).limit(size);
+        const list = await cursor.toArray();
+        ctx.response.body = { total, list };
+      })
       // TODO: post & impl
       // .get("/collection", async (ctx) => {
       //   const collection: Partial<CollectionSchema> = {
@@ -65,22 +106,10 @@ export default expose(async (_ctx, req, lambda) => {
       //       { upsert: true },
       //     );
       // })
-      .get("/test", async (ctx) => {
-        const collection: Partial<CollectionSchema> = {
-          name: "test",
-          searchKey: "test",
-          reFilter: "test",
-        };
-        ctx.response.body = await collections
-          .updateOne(
-            { name: collection.name },
-            { $set: collection },
-            { upsert: true },
-          );
-      })
       .get("/sync", async (ctx) => {
         const name = ctx.request.url.searchParams.get("name");
-        const latest = !!ctx.request.url.searchParams.get("latest");
+        const latest = ctx.request.url.searchParams.get("latest");
+        const num = latest ? parseInt(latest, 0) : undefined;
         if (!name) return ctx.response.body = { name };
         const collection = await collections.findOne({ name });
         if (!collection) return ctx.response.body = { name };
@@ -99,9 +128,7 @@ export default expose(async (_ctx, req, lambda) => {
           const newList = list.filter((item) =>
             item.pubDate > oldLatest.pubDate
           );
-          if (!latest) return newList;
-          // 只同步最新资源
-          return list.length > 1 ? [list[0]] : [];
+          return latest ? newList.slice(0, num) : newList;
         })();
         if (syncList.length === 0) {
           return ctx.response.body = { name, msg: "Not Need Sync" };
