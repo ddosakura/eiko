@@ -9,13 +9,13 @@ services:
       - mongo-pass
     volumes:
       - type: bind
-        source: /koumeiproject/koumei
+        source: ${WS}/koumei
         target: /web
       - type: bind
-        source: /koumeiproject/eiko
+        source: ${WS}/storage
         target: /storage
       - type: bind
-        source: ${PWD}
+        source: ${WS}/eiko
         target: /eiko
     depends_on:
       - mongo
@@ -32,8 +32,8 @@ services:
       options:
         max-size: 1m
     environment:
-      - PUID=${UID}
-      - PGID=${GID}
+      # - PUID=${UID}
+      # - PGID=${GID}
       - UMASK_SET=022
       - RPC_SECRET=123456
       - RPC_PORT=6800
@@ -42,11 +42,9 @@ services:
       - IPV6_MODE=false
       - TZ=Asia/Shanghai
     volumes:
+      - ${WS}/aria2-config:/config
       - type: bind
-        source: /koumeiproject/aria2-config
-        target: /config
-      - type: bind
-        source: /koumeiproject/eiko/downloads
+        source: ${WS}/storage/downloads
         target: /downloads
     # ports:
     #   - 6800:6800

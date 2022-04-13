@@ -14,6 +14,43 @@ docker run -it --init \
   index.ts 8080 static
 ```
 
+### 部署
+
+1. 安装 docker-compose
+
+```bash
+sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+
+sudo chmod +x /usr/local/bin/docker-compose
+
+docker-compose --version
+```
+
+2. 拉取仓库
+
+```bash
+git clone https://github.com/ddosakura/eiko.git
+
+# 上传or构建 https://github.com/ddosakura/koumei.git
+
+# in ~/ws/koumeiproject
+ln -s $PWD/koumei /koumeiproject/koumei
+```
+
+3. 服务部署与关闭
+
+```bash
+# in ~/ws/koumeiproject/eiko
+
+docker-compose up -d
+docker-compose down
+
+docker exec -it <container_id> /bin/bash
+docker logs -f --tail 20 <container_id>
+
+# 运行eiko
+```
+
 ### (optional) Add deno alias to your shell
 
 ```bash
