@@ -123,7 +123,9 @@ export default expose(async (_ctx, req, lambda) => {
           const oldLatest = await resources.findOne({ cid: collection._id }, {
             sort: { pubDate: -1 },
           });
-          if (!oldLatest) return list;
+          if (!oldLatest) {
+            return latest ? list.slice(0, num) : list;
+          }
           // 增量更新
           const newList = list.filter((item) =>
             item.pubDate > oldLatest.pubDate
