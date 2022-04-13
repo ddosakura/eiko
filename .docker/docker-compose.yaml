@@ -39,8 +39,12 @@ services:
       - IPV6_MODE=false
       - TZ=Asia/Shanghai
     volumes:
-      - d:/devenv/aria2-config:/config
-      - d:/devenv/eiko/downloads:/downloads
+      - type: bind
+        source: d:/devenv/aria2-config
+        target: /config
+      - type: bind
+        source: d:/devenv/eiko/downloads
+        target: /downloads
     # ports:
     #   - 6800:6800
     #   - 6888:6888
