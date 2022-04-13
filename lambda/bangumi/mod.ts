@@ -138,17 +138,22 @@ export default expose(async (_ctx, req, lambda) => {
           if (!cossId) return ctx.response.body = {};
           const result = await resources.updateOne(
             { aria2Id },
-            { $set: { hls: { [cossId]: true } } },
+            // { $set: { hls: { [cossId]: true } } },
+            { $set: { [`hls.${cossId}`]: true } },
           );
           return ctx.response.body = result;
         }
         const files: Record<string, string> = JSON.parse(
           ctx.request.url.searchParams.get("files") ?? "{}",
         );
-        // TODO: need mixin?
         const result = await resources.updateOne(
           { aria2Id },
-          { $set: { files } },
+          // { $set: { files } },
+          {
+            $set: Object.fromEntries(
+              Object.entries(files).map(([k, v]) => [`files.${k}`, v]),
+            ),
+          },
         );
         ctx.response.body = result;
       })

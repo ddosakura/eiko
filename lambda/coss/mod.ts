@@ -69,6 +69,8 @@ export default expose(async (_ctx, req, lambda) => {
     } else {
       // 同个下载id的一批文件应该是一个个调回调的
     }
+    if (files.size === 0) return { id, name, files };
+
     if (cb) {
       const url = new URL(cb);
       url.searchParams.set("id", id);

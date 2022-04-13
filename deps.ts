@@ -34,6 +34,3 @@ export const loadSecrets = async () => {
 };
 
 // === tmp ===
-
-export * as cron from "https://esm.sh/cron-parser@4.3.0";
-export * as Comlink from "https://esm.sh/comlink@4.3.1/dist/esm/comlink.mjs";
