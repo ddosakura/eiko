@@ -1,7 +1,8 @@
-import { basicAuth, oak } from "deps";
+import { basicAuth, loadSecrets, oak } from "deps";
 import { newApiGateway } from "./api_gateway.ts";
 import { logger, timing } from "./logger.ts";
 
+const { mongo: { user, pass } } = await loadSecrets();
 export const serve = async (
   port: number,
   webPath: string,
@@ -17,11 +18,12 @@ export const serve = async (
     );
   });
   app.use(async (ctx, next) => {
+    // 临时认值手段
     const unauthorized = basicAuth(
       new Request("http://auth", { headers: ctx.request.headers }),
       "Access to my site",
       {
-        "test2": "123456",
+        [user]: pass,
       },
     );
     if (unauthorized) {

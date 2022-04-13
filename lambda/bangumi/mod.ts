@@ -1,13 +1,12 @@
 import { cors } from "serverless";
 
-import { MongoClient, oak } from "deps";
+import { loadSecrets, MongoClient, oak } from "deps";
 import { expose } from "@eiko/serverless/mod.ts";
 import { singleton } from "@eiko/shared/mod.ts";
 import { CollectionSchema, ResourceSchema } from "./resource.ts";
 import { AcgRipRM } from "./acg.rip.ts";
 
-const user = await Deno.readTextFile("/run/secrets/mongo-user");
-const pass = await Deno.readTextFile("/run/secrets/mongo-pass");
+const { mongo: { user, pass } } = await loadSecrets();
 const client = new MongoClient();
 await client.connect(`mongodb://${user}:${pass}@mongo:27017`);
 const db = client.database("lambda-bangumi");

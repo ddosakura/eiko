@@ -1,6 +1,8 @@
 # coss(cloud object storage service)
 
 - https://github.com/P3TERX/aria2.conf
+- 测试资源
+  - https://blog.csdn.net/fhl13017599952/article/details/116190107
 
 ## images
 
@@ -19,7 +21,11 @@ docker run -d \
 
 # https://www.gaoxiaobo.com/web/service/134.html
 # on-download-complete=hook.sh
-curl --location --request POST 'http://test2:123456@172.23.8.160:8088/api/coss/aria2/complete' \
+curl --location --request POST 'http://<user>:<pass>@<host>:<port>/api/coss/aria2/complete' \
+    --header 'Content-Type: application/json' \
+    --data-raw "{\"id\":\"$1\",\"name\":\"$3\"}"
+# e.g
+curl --location --request POST 'http://test:123456@eiko:8080/api/coss/aria2/complete' \
     --header 'Content-Type: application/json' \
     --data-raw "{\"id\":\"$1\",\"name\":\"$3\"}"
 ```

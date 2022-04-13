@@ -54,7 +54,6 @@ deno run ./main.ts
 - service: coss(cloud object storage service)
 - service: cas(cloud archive service)
 - https://deno.land/x/zx_deno
-- remove 192 172 ips
 
 ## mongo-express
 

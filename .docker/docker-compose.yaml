@@ -19,6 +19,32 @@ services:
     # stdin_open: true # -i interactive
     tty: true # -t tty
     entrypoint: ["bash"]
+  # https://hub.docker.com/r/p3terx/aria2-pro
+  # https://github.com/P3TERX/Aria2-Pro-Docker/blob/master/docker-compose.yml
+  aria2:
+    image: p3terx/aria2-pro:202108221156
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 1m
+    environment:
+      - PUID=${UID}
+      - PGID=${GID}
+      - UMASK_SET=022
+      - RPC_SECRET=123456
+      - RPC_PORT=6800
+      - LISTEN_PORT=6888
+      - DISK_CACHE=64M
+      - IPV6_MODE=false
+      - TZ=Asia/Shanghai
+    volumes:
+      - d:/devenv/aria2-config:/config
+      - d:/devenv/eiko/downloads:/downloads
+    # ports:
+    #   - 6800:6800
+    #   - 6888:6888
+    #   - 6888:6888/udp
   # https://hub.docker.com/_/mongo
   mongo:
     image: mongo:5.0.6

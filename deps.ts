@@ -24,6 +24,15 @@ export {
   ObjectId,
 } from "https://deno.land/x/mongo@v0.29.3/mod.ts";
 
+export const loadSecrets = async () => {
+  return {
+    mongo: {
+      user: await Deno.readTextFile("/run/secrets/mongo-user"),
+      pass: await Deno.readTextFile("/run/secrets/mongo-pass"),
+    },
+  };
+};
+
 // === tmp ===
 
 export * as cron from "https://esm.sh/cron-parser@4.3.0";

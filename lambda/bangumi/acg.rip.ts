@@ -6,7 +6,7 @@ export class AcgRipRM extends ResourceManager {
       return [{
         title: "test",
         pubDate: +new Date(),
-        url: "http://172.23.8.160:8383/eiko/coss/default/a%20b.txt",
+        url: "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4",
       }];
     }
     const url = new URL("http://lambda/2json");

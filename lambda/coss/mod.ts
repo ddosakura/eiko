@@ -3,7 +3,8 @@ import { singleton } from "@eiko/shared/mod.ts";
 import { expose } from "@eiko/serverless/mod.ts";
 // import { Aria2 } from "./deps.ts";
 
-const secret = "123456";
+const RPC_URL = "http://aria2:6800/jsonrpc";
+const RPC_SECRET = "123456"; // aria2-pro 配不了 `/run/secrets/`
 // https://www.gaoxiaobo.com/web/service/134.html
 // https://github1s.com/sonnyp/aria2.js/blob/HEAD/src/JSONRPCClient.js
 // https://aria2.github.io/manual/en/html/index.html
@@ -15,9 +16,9 @@ const aria2c = async (urls: string[]) => {
     jsonrpc: "2.0",
     method: "aria2.addUri",
     id,
-    params: [`token:${secret}`, urls, { dir: "/downloads" }],
+    params: [`token:${RPC_SECRET}`, urls, { dir: "/downloads" }],
   };
-  const resp = await fetch("http://172.23.8.160:6800/jsonrpc", {
+  const resp = await fetch(RPC_URL, {
     method: "POST",
     body: JSON.stringify(body),
     headers: {
