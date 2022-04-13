@@ -1,5 +1,3 @@
-import { cors } from "serverless";
-
 import { loadSecrets, MongoClient, oak } from "deps";
 import { expose } from "@eiko/serverless/mod.ts";
 import { singleton } from "@eiko/shared/mod.ts";
@@ -23,7 +21,6 @@ export default expose(async (_ctx, req, lambda) => {
   };
   const app = singleton(APP, () => {
     const router = new oak.Router()
-      .use(cors("http://localhost:3000"))
       .get("/collections", async (ctx) => {
         const page = parseInt(
           ctx.request.url.searchParams.get("page") ?? "1",
@@ -174,7 +171,7 @@ export default expose(async (_ctx, req, lambda) => {
           //   return {};
           // }
           const name = ctx.request.url.searchParams.get("name");
-          const fitler = ctx.request.url.searchParams.get("fitler");
+          const fitler = ctx.request.url.searchParams.get("fitler") ?? ".*";
           if (!name) return ctx.response.body = { name };
           ctx.response.body = await search(
             name,

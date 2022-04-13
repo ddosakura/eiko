@@ -1,12 +1,9 @@
-import { cors } from "serverless";
-
 import { oak } from "deps";
 import { expose } from "@eiko/serverless/mod.ts";
 import { XMLParser } from "./deps.ts";
 const parser = new XMLParser();
 
 const router = new oak.Router()
-  .use(cors("http://localhost:3000"))
   .get(
     "/2json",
     (ctx) =>

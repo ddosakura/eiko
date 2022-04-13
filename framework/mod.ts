@@ -1,6 +1,7 @@
 import { basicAuth, loadSecrets, oak } from "deps";
 import { newApiGateway } from "./api_gateway.ts";
 import { logger, timing } from "./logger.ts";
+import { cors } from "serverless";
 
 const { mongo: { user, pass } } = await loadSecrets();
 export const serve = async (
@@ -8,7 +9,8 @@ export const serve = async (
   webPath: string,
   storagePath: string,
 ) => {
-  const app = new oak.Application();
+  const app = new oak.Application()
+    .use(cors("http://localhost:3000"));
   app.addEventListener("listen", ({ hostname, port, secure }) => {
     console.log(
       `Listening on: ${secure ? "https://" : "http://"}${
