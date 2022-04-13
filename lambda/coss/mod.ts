@@ -33,11 +33,35 @@ const aria2c = async (urls: string[]) => {
   } = await resp.json();
   return data.result;
 };
+const tellStatus = async (id: string) => {
+  const body = {
+    jsonrpc: "2.0",
+    method: "aria2.tellStatus",
+    id,
+    params: [`token:${RPC_SECRET}`, id],
+  };
+  const resp = await fetch(RPC_URL, {
+    method: "POST",
+    body: JSON.stringify(body),
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+  });
+  const data: {
+    id: string;
+    jsonrpc: "2.0";
+    result: {
+      followedBy: string[]
+    }
+  } = await resp.json();
+  return data.result.followedBy;
+};
 
 // TODO: 之后再入数据库
 const aria2Cache = new Map<
   string,
-  { cb?: string; bucket: string; hls: boolean }
+  { cb?: string; bucket: string; hls: boolean, id: string }
 >();
 
 const hlsCache = new Map<string, Deno.Process>();
@@ -49,10 +73,14 @@ export default expose(async (_ctx, req, lambda) => {
     const cache = aria2Cache.get(id);
     if (!cache) return;
 
-    // 不能删，同个下载id的一批文件是一个个调回调的
+    // TODO: 确认能不能删
     // aria2Cache.delete(id);
-    // 过滤种子文件
-    if (name.endsWith(".torrent")) return;
+    // 跟踪种子文件
+    if (name.endsWith(".torrent")) {
+      const followedBy = await tellStatus(id)
+      followedBy.forEach(fid => aria2Cache.set(fid, cache))
+      return { id, followedBy }
+    }
 
     const { cb, bucket, hls } = cache;
     // mount /storage/downloads to aria2's /downloads
@@ -61,19 +89,20 @@ export default expose(async (_ctx, req, lambda) => {
     const files = new Map<string, string>();
     if (stat.isFile) {
       const id = crypto.randomUUID();
+      // TODO: 目录+id防止同名文件冲突
       files.set(id, name.replace("/downloads", ""));
       await Deno.rename(
         origin,
         `/storage/coss/${bucket}/${id}`,
       );
     } else {
-      // 同个下载id的一批文件应该是一个个调回调的
+      // TODO: 多文件
     }
-    if (files.size === 0) return { id, name, files };
+    if (files.size === 0) return { id, rawId: cache.id, name, files };
 
     if (cb) {
       const url = new URL(cb);
-      url.searchParams.set("id", id);
+      url.searchParams.set("id", cache.id);
       url.searchParams.set(
         "files",
         JSON.stringify(Object.fromEntries(files.entries())),
@@ -94,7 +123,7 @@ export default expose(async (_ctx, req, lambda) => {
         runHls(bucket, cossId, async () => {
           if (cb) {
             const url = new URL(cb);
-            url.searchParams.set("id", id);
+            url.searchParams.set("id", cache.id);
             url.searchParams.set("cossId", cossId);
             url.searchParams.set("hls", "true");
             if (url.host.endsWith(".lambda")) {
@@ -109,7 +138,7 @@ export default expose(async (_ctx, req, lambda) => {
       });
     }
 
-    return { id, name, files };
+    return { id, rawId: cache.id, name, files };
   };
   const app = singleton(APP, () => {
     const router = new oak.Router()
@@ -124,7 +153,7 @@ export default expose(async (_ctx, req, lambda) => {
         const cb = ctx.request.url.searchParams.get("cb") ?? undefined;
         const promises = urls.map(async (url) => {
           const guid = await aria2c([url]);
-          aria2Cache.set(guid, { cb, bucket, hls });
+          aria2Cache.set(guid, { cb, bucket, hls, id: guid });
           return [url, guid as string] as const;
         });
         ctx.response.body = Object.fromEntries(await Promise.all(promises));
