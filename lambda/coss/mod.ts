@@ -44,12 +44,16 @@ const hlsCache = new Map<string, Deno.Process>();
 
 const APP = {};
 export default expose(async (_ctx, req, lambda) => {
-  // TODO: 过滤种子文件 切片MP4文件
   const onAria2Complete = async (id: string, name: string) => {
     if (!id || !name) return;
     const cache = aria2Cache.get(id);
     if (!cache) return;
-    // TODO: 确认是否能删（如一批文件分多次调用完成回调则不能删） aria2Cache.delete(id);
+
+    // 不能删，同个下载id的一批文件是一个个调回调的
+    // aria2Cache.delete(id);
+    // 过滤种子文件
+    if (name.endsWith(".torrent")) return;
+
     const { cb, bucket, hls } = cache;
     // mount /storage/downloads to aria2's /downloads
     const origin = `/storage/${name}`;
@@ -63,7 +67,7 @@ export default expose(async (_ctx, req, lambda) => {
         `/storage/coss/${bucket}/${id}`,
       );
     } else {
-      // TODO: 下载了多个文件
+      // 同个下载id的一批文件应该是一个个调回调的
     }
     if (cb) {
       const url = new URL(cb);
@@ -82,10 +86,10 @@ export default expose(async (_ctx, req, lambda) => {
       }
     }
 
-    if (hls) {
+    // 仅切片MP4文件
+    if (hls && name.toLocaleLowerCase().endsWith(".mp4")) {
       files.forEach((_, cossId) => {
-        const key = `${bucket}/${cossId}`;
-        runHls(key, async () => {
+        runHls(bucket, cossId, async () => {
           if (cb) {
             const url = new URL(cb);
             url.searchParams.set("id", id);
@@ -137,9 +141,8 @@ export default expose(async (_ctx, req, lambda) => {
       .get("/hls", async (ctx) => {
         const bucket = ctx.request.url.searchParams.get("bucket") ?? "default";
         const id = ctx.request.url.searchParams.get("id");
-        if (!id) ctx.response.body = { id };
-        const key = `${bucket}/${id}`;
-        ctx.response.body = await runHls(key);
+        if (!id) return ctx.response.body = { id };
+        ctx.response.body = await runHls(bucket, id);
       })
       .get("/unzip", (ctx) => ctx.response.body = {});
 
@@ -152,18 +155,28 @@ export default expose(async (_ctx, req, lambda) => {
     new Response(null, { status: oak.Status.ServiceUnavailable });
 });
 
-const runHls = (key: string, cb?: () => void) => {
+const runHls = async (bucket: string, id: string, cb?: () => void) => {
+  const key = `${bucket}/${id}`;
   if (!hlsCache.has(key)) {
-    // TODO: replace by ffmpeg
+    const hlsParams =
+      "-c:v libx264 -hls_time 10 -hls_list_size 0 -c:a aac -strict -2 -f hls";
+    const pwd = `/storage/coss/${bucket}`;
     // https://deno.land/manual@v1.20.5/examples/subprocess
+    await Deno.mkdir(`${pwd}/hls/${id}`, { recursive: true });
     const p = Deno.run({
-      cmd: [
-        "deno",
-        "run",
-        "--allow-read",
-        "https://deno.land/std@0.134.0/examples/cat.ts",
-        "README.md",
-      ],
+      // cmd: [
+      //   "deno",
+      //   "run",
+      //   "--allow-read",
+      //   "https://deno.land/std@0.134.0/examples/cat.ts",
+      //   "README.md",
+      // ],
+      // cmd: [
+      //   "echo",
+      //   `ffmpeg -i ${pwd}/${id} ${hlsParams} ${pwd}/hls/${id}/index.m3u8`,
+      // ],
+      cmd: `ffmpeg -i ${pwd}/${id} ${hlsParams} ${pwd}/hls/${id}/index.m3u8`
+        .split(" "),
       stdout: "piped",
     });
     hlsCache.set(key, p);

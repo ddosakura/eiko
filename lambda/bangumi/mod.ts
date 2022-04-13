@@ -133,9 +133,14 @@ export default expose(async (_ctx, req, lambda) => {
         const aria2Id = ctx.request.url.searchParams.get("id");
         if (!aria2Id) return ctx.response.body = {};
         const hls = !!ctx.request.url.searchParams.get("hls");
+        const cossId = ctx.request.url.searchParams.get("cossId");
         if (hls) {
-          // TODO: hls
-          return ctx.response.body = {};
+          if (!cossId) return ctx.response.body = {};
+          const result = await resources.updateOne(
+            { aria2Id },
+            { $set: { hls: { [cossId]: true } } },
+          );
+          return ctx.response.body = result;
         }
         const files: Record<string, string> = JSON.parse(
           ctx.request.url.searchParams.get("files") ?? "{}",
