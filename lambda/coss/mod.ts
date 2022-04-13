@@ -1,6 +1,8 @@
 import { oak } from "deps";
 import { singleton } from "@eiko/shared/mod.ts";
 import { expose } from "@eiko/serverless/mod.ts";
+import { Pool } from "@eiko/pool/mod.ts";
+
 // import { Aria2 } from "./deps.ts";
 
 const RPC_URL = "http://aria2:6800/jsonrpc";
@@ -52,8 +54,8 @@ const tellStatus = async (id: string) => {
     id: string;
     jsonrpc: "2.0";
     result: {
-      followedBy: string[]
-    }
+      followedBy: string[];
+    };
   } = await resp.json();
   return data.result.followedBy;
 };
@@ -61,10 +63,8 @@ const tellStatus = async (id: string) => {
 // TODO: 之后再入数据库
 const aria2Cache = new Map<
   string,
-  { cb?: string; bucket: string; hls: boolean, id: string }
+  { cb?: string; bucket: string; hls: boolean; id: string }
 >();
-
-const hlsCache = new Map<string, Deno.Process>();
 
 const APP = {};
 export default expose(async (_ctx, req, lambda) => {
@@ -77,9 +77,9 @@ export default expose(async (_ctx, req, lambda) => {
     // aria2Cache.delete(id);
     // 跟踪种子文件
     if (name.endsWith(".torrent")) {
-      const followedBy = await tellStatus(id)
-      followedBy.forEach(fid => aria2Cache.set(fid, cache))
-      return { id, followedBy }
+      const followedBy = await tellStatus(id);
+      followedBy.forEach((fid) => aria2Cache.set(fid, cache));
+      return { id, followedBy };
     }
 
     const { cb, bucket, hls } = cache;
@@ -175,6 +175,11 @@ export default expose(async (_ctx, req, lambda) => {
         if (!id) return ctx.response.body = { id };
         ctx.response.body = await runHls(bucket, id);
       })
+      .get("/hls/status", (ctx) => {
+        const running = hlsPool.getRunning();
+        const waiting = hlsPool.getWaiting();
+        ctx.response.body = { running, waiting };
+      })
       .get("/unzip", (ctx) => ctx.response.body = {});
 
     const app = new oak.Application();
@@ -186,37 +191,42 @@ export default expose(async (_ctx, req, lambda) => {
     new Response(null, { status: oak.Status.ServiceUnavailable });
 });
 
+// deno-lint-ignore ban-types
+const hlsCache = new Map<string, {}>();
+const hlsPool = new Pool(2);
 const runHls = async (bucket: string, id: string, cb?: () => void) => {
-  const key = `${bucket}/${id}`;
+  const key = `[${bucket}] ${id}`;
   if (!hlsCache.has(key)) {
     const hlsParams =
       "-c:v libx264 -hls_time 10 -hls_list_size 0 -c:a aac -strict -2 -f hls";
     const pwd = `/storage/coss/${bucket}`;
     // https://deno.land/manual@v1.20.5/examples/subprocess
     await Deno.mkdir(`${pwd}/hls/${id}`, { recursive: true });
-    const p = Deno.run({
-      // cmd: [
-      //   "deno",
-      //   "run",
-      //   "--allow-read",
-      //   "https://deno.land/std@0.134.0/examples/cat.ts",
-      //   "README.md",
-      // ],
-      // cmd: [
-      //   "echo",
-      //   `ffmpeg -i ${pwd}/${id} ${hlsParams} ${pwd}/hls/${id}/index.m3u8`,
-      // ],
-      cmd: `ffmpeg -i ${pwd}/${id} ${hlsParams} ${pwd}/hls/${id}/index.m3u8`
-        .split(" "),
-      stdout: "piped",
-    });
-    hlsCache.set(key, p);
-    p.status().then(({ code }) => {
+
+    hlsCache.set(key, {});
+    const task = async () => {
+      const p = Deno.run({
+        // cmd: [
+        //   "deno",
+        //   "run",
+        //   "--allow-read",
+        //   "https://deno.land/std@0.134.0/examples/cat.ts",
+        //   "README.md",
+        // ],
+        // cmd: [
+        //   "echo",
+        //   `ffmpeg -i ${pwd}/${id} ${hlsParams} ${pwd}/hls/${id}/index.m3u8`,
+        // ],
+        cmd: `ffmpeg -i ${pwd}/${id} ${hlsParams} ${pwd}/hls/${id}/index.m3u8`
+          .split(" "),
+        stdout: "piped",
+      });
+      const { code } = await p.status();
       if (code !== 0) return;
       cb?.();
       hlsCache.delete(key);
-    });
+    };
+    hlsPool.run(key, task);
   }
-  const p = hlsCache.get(key);
-  return p ? p.output() : "no task";
+  return hlsCache.has(key) ? "running or waiting" : "no task";
 };
