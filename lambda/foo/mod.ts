@@ -1,15 +1,40 @@
-import { oak } from "deps";
-import { expose } from "@eiko/serverless/mod.ts";
+import { singleton } from "@eiko/shared/mod.ts";
+import { expose, Lambda } from "@eiko/serverless/mod.ts";
+import {
+  Application,
+  Controller,
+  Get,
+  registerController,
+  Status,
+} from "@eiko/oakd/mod.ts";
 
-const router = new oak.Router()
-  .get("/", (ctx) => ctx.response.body = { code: 0, msg: "foo2" })
-  .get("/bar", (ctx) => ctx.response.body = { code: 0, msg: "fooBar" });
+@Controller()
+class AppController {
+  // @Service
+  // private lambda!: Lambda;
 
-const app = new oak.Application();
-app.use(router.routes());
-app.use(router.allowedMethods());
+  @Get("/")
+  foo() {
+    return { code: 0, msg: "foo2" };
+  }
+  @Get("/bar")
+  bar() {
+    return { code: 0, msg: "fooBar" };
+  }
+  @Get("/lambda")
+  testLambda() {
+    // TODO: lambda
+    return { code: 0, msg: "lambda" };
+  }
+}
 
-export default expose(async (_ctx, req) => {
+const APP = {};
+export default expose(async (_ctx, req, lambda) => {
+  const app = singleton(APP, () => {
+    const app = new Application();
+    registerController(app, AppController);
+    return app;
+  });
   return await app.handle(req) ??
-    new Response(null, { status: oak.Status.ServiceUnavailable });
+    new Response(null, { status: Status.ServiceUnavailable });
 });
