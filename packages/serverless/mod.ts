@@ -14,8 +14,9 @@ import {
 export type Context = Record<string, any>;
 
 export type Lambda = (
-  svr: string,
-) => (input: RequestInfo, init?: RequestInit) => Promise<Response>;
+  input: RequestInfo,
+  init?: RequestInit,
+) => Promise<Response>;
 
 export type Handler = (
   context: Context,
@@ -25,7 +26,7 @@ export type Handler = (
 export type RawHandler = (
   context: Context,
   request: RawRequest,
-  lambda: (svr: string, req: RawRequest) => Promise<RawResponse>,
+  lambda: (req: RawRequest) => Promise<RawResponse>,
 ) => Promise<RawResponse>;
 
 // === define ===
@@ -52,14 +53,12 @@ export const define = (handler: HandlerOrServerless): RawServerless => {
         const body = await serverless.handler(
           ctx,
           new Request(url, opts),
-          (svr: string) =>
-            async (input: RequestInfo, init?: RequestInit) => {
-              const resp = await lambda(
-                svr,
-                await toRawRequest(new Request(input, init)),
-              );
-              return toResponse(resp);
-            },
+          async (input: RequestInfo, init?: RequestInit) => {
+            const resp = await lambda(
+              await toRawRequest(new Request(input, init)),
+            );
+            return toResponse(resp);
+          },
         );
         return toRawResponse(body);
       } catch {
@@ -120,9 +119,18 @@ export class Services {
       return await s.handler(
         context,
         request,
-        proxy(async (svr: string, req: RawRequest) =>
-          await this.handle(svr, req)
-        ),
+        proxy(async (req: RawRequest) => {
+          const url = new URL(req.url);
+          if (!url.host.endsWith(".lambda")) {
+            return toRawResponse(await fetch(url.toString()));
+          }
+          const svr = url.host.replace(/\.lambda$/, "");
+          url.host = "lambda";
+          const now = +new Date();
+          const resp = await this.handle(svr, req);
+          console.log(req.method, req.url, "-", +new Date() - now, "ms");
+          return resp;
+        }),
       );
     } catch {
       // console.error("catch", e);

@@ -107,14 +107,7 @@ export default expose(async (_ctx, req, lambda) => {
         "files",
         JSON.stringify(Object.fromEntries(files.entries())),
       );
-      // TODO: 统一化
-      if (url.host.endsWith(".lambda")) {
-        const svr = url.host.replace(/\.lambda$/, "");
-        url.host = "lambda";
-        await lambda(svr)(url.toString());
-      } else {
-        await fetch(url.toString());
-      }
+      await lambda(url.toString());
     }
 
     // 仅切片MP4文件
@@ -126,13 +119,7 @@ export default expose(async (_ctx, req, lambda) => {
             url.searchParams.set("id", cache.id);
             url.searchParams.set("cossId", cossId);
             url.searchParams.set("hls", "true");
-            if (url.host.endsWith(".lambda")) {
-              const svr = url.host.replace(/\.lambda$/, "");
-              url.host = svr;
-              await lambda(svr)(url.toString());
-            } else {
-              await fetch(url.toString());
-            }
+            await lambda(url.toString());
           }
         });
       });

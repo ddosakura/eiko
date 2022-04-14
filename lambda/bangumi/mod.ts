@@ -136,12 +136,12 @@ export default expose(async (_ctx, req, lambda) => {
           return ctx.response.body = { name, msg: "Not Need Sync" };
         }
 
-        const url = new URL("http://lambda/aria2");
+        const url = new URL("http://coss.lambda/aria2");
         syncList.forEach((item) => url.searchParams.append("url", item.url));
         url.searchParams.set("hls", "true");
         url.searchParams.set("bucket", "bangumi");
         url.searchParams.set("cb", `http://bangumi.lambda/sync/done`);
-        const resp = await lambda("coss")(url.toString());
+        const resp = await lambda(url.toString());
         const aria2Ids: Record<string, string> = await resp.json();
         // const aria2Ids: Record<string, string> = {};
 

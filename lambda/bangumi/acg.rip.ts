@@ -9,16 +9,20 @@ export class AcgRipRM extends ResourceManager {
         url: "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4",
       }];
     }
-    const url = new URL("http://lambda/2json");
+    const url = new URL("http://rss.lambda/2json");
     url.searchParams.set("url", `https://acg.rip/.xml?term=${this.name}`);
-    const resp = await this.lambda("rss")(url.toString());
-    const { rss: { rss } } = (await resp.json()) as Example;
-    const { channel: { item } } = rss;
-    return item.map((item) => ({
-      title: item.title,
-      pubDate: +new Date(item.pubDate),
-      url: `${item.link}.torrent`,
-    }));
+    try {
+      const resp = await this.lambda(url.toString());
+      const { rss: { rss } } = (await resp.json()) as Example;
+      const { channel: { item } } = rss;
+      return item.map((item) => ({
+        title: item.title,
+        pubDate: +new Date(item.pubDate),
+        url: `${item.link}.torrent`,
+      }));
+    } catch {
+      return [];
+    }
   }
 }
 
