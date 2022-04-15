@@ -54,6 +54,7 @@ export const Param = (name: string, fmt?: (param: string) => any) =>
     const param = ctx.params[name];
     return fmt ? fmt(param) : param;
   });
+// TODO: required
 export const Query = (name: string, fmt?: (param?: string) => any) =>
   argFactory((ctx) => {
     const param = ctx.request.url.searchParams.get(name) ??

@@ -4,9 +4,14 @@ export class AcgRipRM extends ResourceManager {
   async search(): Promise<Resource[]> {
     if (this.name === "test") {
       return [{
-        title: "test",
+        title: "mp4",
         pubDate: +new Date(),
         url: "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4",
+      }, {
+        title: "mkv",
+        pubDate: +new Date(),
+        url:
+          "https://sample-videos.com/video123/mkv/720/big_buck_bunny_720p_10mb.mkv",
       }];
     }
     const url = new URL("http://rss.lambda/2json");

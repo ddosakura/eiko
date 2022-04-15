@@ -2,3 +2,4 @@ main.js
 secrets.prod
 debug.log
 .env
+storage

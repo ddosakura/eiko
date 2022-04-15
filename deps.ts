@@ -4,6 +4,8 @@ declare global {
   type Buffer = io.Buffer;
 }
 
+export * as path from "https://deno.land/std@0.134.0/path/mod.ts";
+
 export * as base64 from "https://deno.land/std@0.134.0/encoding/base64.ts";
 
 // https://deno.land/std/uuid

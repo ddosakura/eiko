@@ -1,4 +1,4 @@
-import { oak } from "deps";
+import { oak, path } from "deps";
 import { singleton } from "@eiko/shared/mod.ts";
 import { expose } from "@eiko/serverless/mod.ts";
 import { Pool } from "@eiko/pool/mod.ts";
@@ -86,14 +86,14 @@ export default expose(async (_ctx, req, lambda) => {
     // mount /storage/downloads to aria2's /downloads
     const origin = `/storage/${name}`;
     const stat = await Deno.stat(origin);
-    const files = new Map<string, string>();
+    const files = new Map<CossId, string>();
     if (stat.isFile) {
-      const id = crypto.randomUUID();
-      // TODO: 目录+id防止同名文件冲突
+      const id = CossId.from(origin);
+      // TODO: 下载目录+id防止同名文件冲突
       files.set(id, name.replace("/downloads", ""));
       await Deno.rename(
         origin,
-        `/storage/coss/${bucket}/${id}`,
+        `/storage/coss/${bucket}/${id.getFileName()}`,
       );
     } else {
       // TODO: 多文件
@@ -107,21 +107,53 @@ export default expose(async (_ctx, req, lambda) => {
         "files",
         JSON.stringify(Object.fromEntries(files.entries())),
       );
-      await lambda(url.toString());
+      // await lambda(url.toString());
+      lambda(url.toString());
     }
 
-    // 仅切片MP4文件
-    if (hls && name.toLocaleLowerCase().endsWith(".mp4")) {
-      files.forEach((_, cossId) => {
-        runHls(bucket, cossId, async () => {
-          if (cb) {
-            const url = new URL(cb);
-            url.searchParams.set("id", cache.id);
-            url.searchParams.set("cossId", cossId);
-            url.searchParams.set("hls", "true");
-            await lambda(url.toString());
-          }
-        });
+    // 切片
+    if (hls) {
+      files.forEach((name, cossId) => {
+        const ext = path.extname(name);
+        if (ext === ".mp4") {
+          runHls(bucket, cossId, () => {
+            if (cb) {
+              const url = new URL(cb);
+              url.searchParams.set("id", cache.id);
+              url.searchParams.set("cossId", cossId.toString());
+              url.searchParams.set("hls", "true");
+              // await lambda(url.toString());
+              lambda(url.toString());
+            }
+          });
+        }
+        if (ext === ".mkv") {
+          const files = new Map<CossId, string>();
+          const toId = new CossId(cossId).setExt(".mp4");
+          files.set(toId, `${name}?ffmpeg=mp4`);
+          runMP4(bucket, cossId, toId, () => {
+            if (cb) {
+              const url = new URL(cb);
+              url.searchParams.set("id", cache.id);
+              url.searchParams.set(
+                "files",
+                JSON.stringify(Object.fromEntries(files.entries())),
+              );
+              // await lambda(url.toString());
+              lambda(url.toString());
+            }
+            runHls(bucket, toId, () => {
+              if (cb) {
+                const url = new URL(cb);
+                url.searchParams.set("id", cache.id);
+                url.searchParams.set("cossId", toId.toString());
+                url.searchParams.set("hls", "true");
+                // await lambda(url.toString());
+                lambda(url.toString());
+              }
+            });
+          });
+        }
       });
     }
 
@@ -160,11 +192,11 @@ export default expose(async (_ctx, req, lambda) => {
         const bucket = ctx.request.url.searchParams.get("bucket") ?? "default";
         const id = ctx.request.url.searchParams.get("id");
         if (!id) return ctx.response.body = { id };
-        ctx.response.body = await runHls(bucket, id);
+        ctx.response.body = await runHls(bucket, new CossId(id));
       })
       .get("/hls/status", (ctx) => {
-        const running = hlsPool.getRunning();
-        const waiting = hlsPool.getWaiting();
+        const running = ffmpegPool.getRunning();
+        const waiting = ffmpegPool.getWaiting();
         ctx.response.body = { running, waiting };
       })
       .get("/unzip", (ctx) => ctx.response.body = {});
@@ -178,20 +210,21 @@ export default expose(async (_ctx, req, lambda) => {
     new Response(null, { status: oak.Status.ServiceUnavailable });
 });
 
+const ffmpegPool = new Pool(2);
+
 // deno-lint-ignore ban-types
 const hlsCache = new Map<string, {}>();
-const hlsPool = new Pool(2);
-const runHls = async (bucket: string, id: string, cb?: () => void) => {
-  const key = `[${bucket}] ${id}`;
+const runHls = async (bucket: string, cid: CossId, cb?: () => void) => {
+  const id = cid.getFileName();
+  const key = `[${bucket}] ${id} => m3u8`;
   if (!hlsCache.has(key)) {
+    hlsCache.set(key, {});
     const hlsParams =
       "-c:v libx264 -hls_time 10 -hls_list_size 0 -c:a aac -strict -2 -f hls";
     const pwd = `/storage/coss/${bucket}`;
-    // https://deno.land/manual@v1.20.5/examples/subprocess
     await Deno.mkdir(`${pwd}/hls/${id}`, { recursive: true });
-
-    hlsCache.set(key, {});
     const task = async () => {
+      // https://deno.land/manual@v1.20.5/examples/subprocess
       const p = Deno.run({
         // cmd: [
         //   "deno",
@@ -213,7 +246,72 @@ const runHls = async (bucket: string, id: string, cb?: () => void) => {
       cb?.();
       hlsCache.delete(key);
     };
-    hlsPool.run(key, task);
+    ffmpegPool.run(key, task);
   }
   return hlsCache.has(key) ? "running or waiting" : "no task";
 };
+
+// deno-lint-ignore ban-types
+const mp4Cache = new Map<string, {}>();
+const runMP4 = (
+  bucket: string,
+  fromId: CossId,
+  toId: CossId,
+  cb?: () => void,
+) => {
+  const key = `[${bucket}] ${fromId} => ${toId}`;
+  if (!mp4Cache.has(key)) {
+    mp4Cache.set(key, {});
+    const pwd = `/storage/coss/${bucket}`;
+    const task = async () => {
+      const p = Deno.run({
+        cmd:
+          `ffmpeg -i ${pwd}/${fromId.getFileName()} ${pwd}/${toId.getFileName()}`
+            .split(" "),
+        stdout: "piped",
+      });
+      const { code } = await p.status();
+      if (code !== 0) return;
+      cb?.();
+      mp4Cache.delete(key);
+    };
+    ffmpegPool.run(key, task);
+  }
+  return mp4Cache.has(key) ? "running or waiting" : "no task";
+};
+
+class CossId {
+  private uuid: string;
+  private ext: string;
+  constructor(id?: string | CossId) {
+    if (!id) {
+      // e.g. 3fb6009e-e6c2-4732-ac88-347d8d929197
+      this.uuid = crypto.randomUUID();
+      this.ext = "";
+      return;
+    }
+    if (typeof id === "string") {
+      const [uuid, ext] = id.split("--");
+      this.uuid = uuid;
+      this.ext = ext ?? "";
+      return;
+    }
+    this.uuid = id.uuid;
+    this.ext = id.ext;
+  }
+  static from(name: string) {
+    const cossId = new CossId();
+    cossId.ext = path.extname(name).replace(".", "");
+    return cossId;
+  }
+  toString() {
+    return this.ext ? `${this.uuid}--${this.ext}` : this.uuid;
+  }
+  getFileName() {
+    return this.ext ? `${this.uuid}.${this.ext}` : this.uuid;
+  }
+  setExt(ext: string) {
+    this.ext = ext.replace(".", "");
+    return this;
+  }
+}

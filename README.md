@@ -92,6 +92,16 @@ deno run ./main.ts
 - service: cas(cloud archive service)
 - https://deno.land/x/zx_deno
 
+### for bangumi
+
+- series
+- oakd lambda
+  - delete c/r with coss
+  - 指定 sync
+  - 重切
+- svr acl&对外可见性
+- hot reload
+
 ## mongo-express
 
 ```bash

@@ -44,6 +44,19 @@ export default expose(async (_ctx, req, lambda) => {
             { upsert: true },
           );
       })
+      .delete("/collection", async (ctx) => {
+        const id = ctx.request.url.searchParams.get("id");
+        if (!id) return ctx.response.body = {};
+        const coss = !!ctx.request.url.searchParams.get("coss");
+        const _id = new ObjectId(id);
+        if (coss) {
+          // TODO: 清理coss资源
+        }
+        ctx.response.body = {
+          collections: await collections.deleteOne({ _id }),
+          resources: await resources.deleteMany({ cid: _id }),
+        };
+      })
       .get("/collections", async (ctx) => {
         const page = parseInt(
           ctx.request.url.searchParams.get("page") ?? "1",
@@ -177,7 +190,8 @@ export default expose(async (_ctx, req, lambda) => {
           // { $set: { files } },
           {
             $set: Object.fromEntries(
-              Object.entries(files).map(([k, v]) => [`files.${k}`, v]),
+              Object.entries(files)
+                .map(([k, v]) => [`files.${k}`, v]),
             ),
           },
         );

@@ -3,6 +3,7 @@
 - https://github.com/P3TERX/aria2.conf
 - 测试资源
   - https://blog.csdn.net/fhl13017599952/article/details/116190107
+  - https://blog.csdn.net/xia296/article/details/118651949
 
 ## images
 
