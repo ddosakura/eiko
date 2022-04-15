@@ -5,6 +5,37 @@
 
 ## QuickStart
 
+1. 安装依赖
+
+```bash
+./install.sh
+```
+
+2. 安装 vscode 插件
+
+- deno
+
+3. 配置 aria2
+
+```bash
+# script/clean.sh
+curl --location --request POST "http://test:123456@eiko:8080/api/coss/aria2/complete?debug=$1" \
+    --header 'Content-Type: application/json' \
+    --data-raw "{\"id\":\"$1\",\"name\":\"$3\"}"
+
+# script/core
+CLEAN_UP() {
+    DELETE_DOT_ARIA2
+    # DELETE_DOT_TORRENT
+    DELETE_EXCLUDE_FILE
+    DELETE_EMPTY_DIR
+}
+```
+
+### 运行主服务
+
+_具体参数可能发生变化，参见 dev.sh/pre.sh_
+
 ```bash
 docker run -it --init \
   -p 80:8080
@@ -14,7 +45,7 @@ docker run -it --init \
   index.ts 8080 static
 ```
 
-### 部署
+### docker-compose 部署
 
 1. 安装 docker-compose
 
