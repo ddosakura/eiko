@@ -1,17 +1,18 @@
-import { singleton } from "@eiko/shared/mod.ts";
-import { expose, Lambda } from "@eiko/serverless/mod.ts";
 import {
-  Application,
-  Controller,
-  Get,
-  registerController,
-  Status,
-} from "@eiko/oakd/mod.ts";
+  exposeControllers,
+  Lambda,
+  LambdaService,
+} from "@eiko/serverless/mod.ts";
+import { Autowired, Controller, Get, Service } from "@eiko/oakd/mod.ts";
 
 @Controller()
 class AppController {
-  // @Service
-  // private lambda!: Lambda;
+  @Autowired
+  private lambda!: Lambda;
+  @Service("lambda")
+  private lambda2!: Lambda;
+  @LambdaService("foo")
+  private lambda3!: Lambda;
 
   @Get("/")
   foo() {
@@ -22,19 +23,12 @@ class AppController {
     return { code: 0, msg: "fooBar" };
   }
   @Get("/lambda")
-  testLambda() {
-    // TODO: lambda
-    return { code: 0, msg: "lambda" };
+  async testLambda() {
+    const lambda = await (await this.lambda("http://foo.lambda/bar")).json();
+    const lambda2 = await (await this.lambda2("http://foo.lambda")).json();
+    const lambda3 = await (await this.lambda3("/bar")).json();
+    return { code: 0, data: { lambda, lambda2, lambda3 } };
   }
 }
 
-const APP = {};
-export default expose(async (_ctx, req, lambda) => {
-  const app = singleton(APP, () => {
-    const app = new Application();
-    registerController(app, AppController);
-    return app;
-  });
-  return await app.handle(req) ??
-    new Response(null, { status: Status.ServiceUnavailable });
-});
+export default exposeControllers(AppController);

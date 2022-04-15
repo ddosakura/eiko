@@ -101,6 +101,7 @@ deno run ./main.ts
   - 重切
 - svr acl&对外可见性
 - hot reload
+- image: zsh&终端中文
 
 ## mongo-express
 

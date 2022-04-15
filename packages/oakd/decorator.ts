@@ -93,7 +93,25 @@ export function Controller(prefix?: string) {
   };
 }
 
-// TODO: injectServices
+const services = new Map<string, any>();
+export const registerService = (name: string, service: any) =>
+  services.set(name, service);
+export const Autowired = (target: any, name: string) => {
+  Object.defineProperty(target, name, {
+    get() {
+      return services.get(name);
+    },
+  });
+};
+export const Service = (svr: string, wrap?: (fn: any) => any) =>
+  (target: any, name: string) => {
+    Object.defineProperty(target, name, {
+      get() {
+        const service = services.get(svr);
+        return wrap ? wrap(service) : service;
+      },
+    });
+  };
 
 export const registerController = (
   app: Application,
