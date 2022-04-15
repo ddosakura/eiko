@@ -67,7 +67,7 @@ export default expose(async (_ctx, req, lambda) => {
           10,
         );
         const total = await collections.countDocuments();
-        const cursor = collections.find();
+        const cursor = collections.find(undefined, { sort: { _id: -1 } });
         cursor.skip((page - 1) * size).limit(size);
         const list = await cursor.toArray();
         ctx.response.body = { total, list };
@@ -82,7 +82,7 @@ export default expose(async (_ctx, req, lambda) => {
           10,
         );
         const total = await resources.countDocuments();
-        const cursor = resources.find();
+        const cursor = resources.find(undefined, { sort: { _id: -1 } });
         cursor.skip((page - 1) * size).limit(size);
         const list = await cursor.toArray();
         ctx.response.body = { total, list };
@@ -100,7 +100,9 @@ export default expose(async (_ctx, req, lambda) => {
         const total = await resources.countDocuments({
           cid: new ObjectId(cid),
         });
-        const cursor = resources.find({ cid: new ObjectId(cid) });
+        const cursor = resources.find({ cid: new ObjectId(cid) }, {
+          sort: { _id: -1 },
+        });
         cursor.skip((page - 1) * size).limit(size);
         const list = await cursor.toArray();
         ctx.response.body = { total, list };
