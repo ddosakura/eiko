@@ -122,6 +122,7 @@ deno run ./main.ts
 - service: coss(cloud object storage service)
 - service: cas(cloud archive service)
 - https://deno.land/x/zx_deno
+- graphql
 
 ### for bangumi
 
@@ -133,6 +134,7 @@ deno run ./main.ts
 - svr acl&对外可见性
 - hot reload
 - image: zsh&终端中文
+- 切片任务下发
 
 ## mongo-express
 

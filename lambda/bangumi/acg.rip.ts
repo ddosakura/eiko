@@ -15,7 +15,11 @@ export class AcgRipRM extends ResourceManager {
       }];
     }
     const url = new URL("http://rss.lambda/2json");
-    url.searchParams.set("url", `https://acg.rip/.xml?term=${this.name}`);
+    if (this.name) {
+      url.searchParams.set("url", `https://acg.rip/.xml?term=${this.name}`);
+    } else {
+      url.searchParams.set("url", "https://acg.rip/.xml");
+    }
     try {
       const resp = await this.lambda(url.toString());
       const { rss: { rss } } = (await resp.json()) as Example;
